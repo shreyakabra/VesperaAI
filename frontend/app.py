@@ -1,13 +1,9 @@
 import streamlit as st
 import requests
 from dotenv import load_dotenv
-import os
-
-# Load environment variables from the .env file
-load_dotenv()
 
 # Backend Flask server URL from the .env file
-BACKEND_URL = os.getenv("BACKEND_URI")
+BACKEND_URL = "https://vespera-ai-backend.vercel.app/"
 
 # Set page configuration
 st.set_page_config(page_title="Vespera AI Storytelling", layout="wide")
