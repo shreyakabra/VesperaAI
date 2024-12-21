@@ -29,44 +29,37 @@ def home():
 def generate_story():
     data = request.json
     prompt = data.get("prompt", "").strip()
-    max_length = data.get("max_length", 200)  # Default maximum token length
-    num_return_sequences = data.get("num_return_sequences", 1)  # Number of stories to generate
-    temperature = data.get("temperature", 0.7)  # Creativity level
-    mode = data.get("mode", "general")  # Default mode
+    max_length = data.get("max_length", 200)
+    temperature = data.get("temperature", 0.7)
+    mode = data.get("mode", "general")
 
     if not prompt:
         return jsonify({"error": "Prompt cannot be empty!"}), 400
 
     try:
-        # Optionally modify the prompt based on the mode
-        if mode == "fantasy":
-            prompt = f"Fantasy: {prompt}"
-        elif mode == "sci-fi":
-            prompt = f"Sci-Fi: {prompt}"
-        elif mode == "mystery":
-            prompt = f"Mystery: {prompt}"
-        # Add more modes as needed
+        if mode in ["fantasy", "sci-fi", "mystery"]:
+            prompt = f"{mode.capitalize()}: {prompt}"
 
-        # Modified prompt for generating both title and story
         structured_prompt = (
-            f"{prompt}\n\n"
-            "Please provide a story title followed by the story itself. The title should be on a separate line."
+            f"{prompt}\n\nPlease provide a story title followed by the story itself. "
+            f"The title should be on a separate line."
         )
 
-        # Generate story using GPT-4
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": structured_prompt}],
+            max_tokens=max_length,
         )
 
-        generated_content = response.choices[0].message.content.split("\n", 1)
-        title = generated_content[0].strip()
-        story = generated_content[1].strip()
+        generated_content = response.choices[0].message.content.strip()
+        if "\n" in generated_content:
+            title, story = generated_content.split("\n", 1)
+        else:
+            title = "Untitled Story"
+            story = generated_content
 
-        return jsonify({
-            "title": title,
-            "story": story
-        })
+        return jsonify({"title": title.strip(), "story": story.strip()})
+
     except Exception as e:
         return jsonify({"error": f"Story generation failed: {str(e)}"}), 500
 
