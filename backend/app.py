@@ -1,5 +1,4 @@
 import os
-import logging
 from flask import Flask, request, jsonify, render_template
 from g4f.client import Client
 from pymongo import MongoClient
@@ -19,9 +18,6 @@ DATABASE_URI = os.getenv("DATABASE_URI")
 mongo_client = MongoClient(DATABASE_URI)  # Use the environment variable here
 db = mongo_client["storydb"]  # Database name
 stories_collection = db["stories"]  # Collection name
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
 
 # Root route
 @app.route("/")
@@ -58,11 +54,9 @@ def generate_story():
         )
 
         # Generate story using GPT-4
-        logging.info("Sending request to GPT-4 API")
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": structured_prompt}],
-            timeout=30  # Set a timeout for the API call
         )
 
         generated_content = response.choices[0].message.content.split("\n", 1)
@@ -74,7 +68,6 @@ def generate_story():
             "story": story
         })
     except Exception as e:
-        logging.error(f"Story generation failed: {str(e)}")
         return jsonify({"error": f"Story generation failed: {str(e)}"}), 500
 
 # Route for saving a story to the database
@@ -93,7 +86,6 @@ def save_story():
         stories_collection.insert_one({"title": title, "prompt": prompt, "story": story})
         return jsonify({"message": "Story saved successfully!"}), 200
     except Exception as e:
-        logging.error(f"Saving story failed: {str(e)}")
         return jsonify({"error": f"Saving story failed: {str(e)}"}), 500
 
 # Route for retrieving all saved stories
@@ -104,13 +96,9 @@ def get_stories():
         stories = list(stories_collection.find({}, {"_id": 0}))  # Exclude MongoDB's internal _id field
         return jsonify({"stories": stories})
     except Exception as e:
-        logging.error(f"Fetching stories failed: {str(e)}")
         return jsonify({"error": f"Fetching stories failed: {str(e)}"}), 500
 
 # Root route
 @app.route("/testPage")
 def htmlPage():
     return render_template("index.html")
-
-if __name__ == "__main__":
-    app.run(debug=True)
