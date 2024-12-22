@@ -3,12 +3,14 @@ from flask import Flask, request, jsonify, render_template
 from g4f.client import Client
 from pymongo import MongoClient
 from dotenv import load_dotenv
+from flask_cors import CORS
 
 # Load environment variables from .env file
 load_dotenv()
 
 # Initialize Flask app
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 
 # Initialize GPT-4 client from gpt-4free
 client = Client()
@@ -98,7 +100,10 @@ def get_stories():
     except Exception as e:
         return jsonify({"error": f"Fetching stories failed: {str(e)}"}), 500
 
-# Root route
+# Route for serving a test HTML page
 @app.route("/testPage")
 def htmlPage():
     return render_template("index.html")
+
+if __name__ == "__main__":
+    app.run(debug=True)
