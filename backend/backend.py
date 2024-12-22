@@ -1,12 +1,6 @@
-import os
-import logging
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify
 from g4f.client import Client
 from pymongo import MongoClient
-from dotenv import load_dotenv
-
-# Load environment variables from .env file
-load_dotenv()
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -14,15 +8,10 @@ app = Flask(__name__)
 # Initialize GPT-4 client from gpt-4free
 client = Client()
 
-# Connect to MongoDB using the URI from the environment variable
-DATABASE_URI = os.getenv("DATABASE_URI")
-mongo_client = MongoClient(DATABASE_URI)  # Use the environment variable here
+# Connect to MongoDB
+mongo_client = MongoClient("mongodb://localhost:27017/")  # Ensure MongoDB is running locally
 db = mongo_client["storydb"]  # Database name
 stories_collection = db["stories"]  # Collection name
-
-# Set up logging
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
 
 # Root route
 @app.route("/")
@@ -40,7 +29,6 @@ def generate_story():
     mode = data.get("mode", "general")  # Default mode
 
     if not prompt:
-        logger.error("Prompt cannot be empty!")
         return jsonify({"error": "Prompt cannot be empty!"}), 400
 
     try:
@@ -69,13 +57,11 @@ def generate_story():
         title = generated_content[0].strip()
         story = generated_content[1].strip()
 
-        logger.info(f"Story generated successfully: {title}")
         return jsonify({
             "title": title,
             "story": story
         })
     except Exception as e:
-        logger.error(f"Error generating story: {str(e)}")
         return jsonify({"error": f"Story generation failed: {str(e)}"}), 500
 
 # Route for saving a story to the database
@@ -87,16 +73,13 @@ def save_story():
     story = data.get("story", "").strip()
 
     if not prompt or not story:
-        logger.error("Both prompt and story are required!")
         return jsonify({"error": "Both prompt and story are required!"}), 400
 
     try:
         # Save story to MongoDB
         stories_collection.insert_one({"title": title, "prompt": prompt, "story": story})
-        logger.info(f"Story '{title}' saved successfully!")
         return jsonify({"message": "Story saved successfully!"}), 200
     except Exception as e:
-        logger.error(f"Error saving story: {str(e)}")
         return jsonify({"error": f"Saving story failed: {str(e)}"}), 500
 
 # Route for retrieving all saved stories
@@ -105,17 +88,10 @@ def get_stories():
     try:
         # Retrieve all stories from MongoDB
         stories = list(stories_collection.find({}, {"_id": 0}))  # Exclude MongoDB's internal _id field
-        logger.info(f"Fetched {len(stories)} saved stories.")
         return jsonify({"stories": stories})
     except Exception as e:
-        logger.error(f"Error fetching stories: {str(e)}")
         return jsonify({"error": f"Fetching stories failed: {str(e)}"}), 500
 
-# Root route
-@app.route("/testPage")
-def htmlPage():
-    return render_template("index.html")
-
-# Run the app (only when running locally, not in production)
+# Run the Flask app
 if __name__ == "__main__":
     app.run(debug=True)
